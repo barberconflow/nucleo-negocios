@@ -1,0 +1,22 @@
+{
+  "name": "nucleo-negocios",
+  "version": "0.1.0",
+  "description": "El código común a las apps de la barbería, el carwash y la lavandería: dinero, fechas y el esquema base.",
+  "type": "module",
+  "private": true,
+  "main": "src/index.js",
+  "exports": {
+    ".": "./src/index.js",
+    "./dinero": "./src/dinero.js",
+    "./fechas": "./src/fechas.js",
+    "./sql/esquema-base.sql": "./sql/esquema-base.sql"
+  },
+  "files": ["src", "sql"],
+  "scripts": {
+    "test": "vitest run",
+    "test:watch": "vitest"
+  },
+  "devDependencies": {
+    "vitest": "^4.1.11"
+  }
+}
