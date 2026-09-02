@@ -16,8 +16,18 @@ src/dinero.test.js   35 pruebas. Prueban el núcleo con TRES configuraciones
                      distintas — eso es lo que demuestra que sirve para más
                      de un negocio
 src/fechas.js        inicio de día/semana/mes y formato de moneda y fecha
+src/estilos.js       ESTILOS_BASE (el tema completo) y useDispositivo. Cada
+                     app pone su acento redefiniendo las variables CSS encima
+src/supabase.js      crearCliente(url, key) — cada negocio con su PROPIO
+                     proyecto de Supabase
+src/auth.js          resolverUsuario(usuarios, correo): quién entró y con qué
+                     rol. Con pruebas
 sql/esquema-base.sql las 9 tablas comunes + RLS cerrada por defecto
 ```
+
+Los tres primeros se importan por subruta (`nucleo-negocios/estilos`, etc.)
+y no desde el índice: usan react/supabase-js (peerDependencies) y el índice
+tiene que poder cargarse en Node pelado para las pruebas.
 
 ## La pregunta que decide todo
 
@@ -58,7 +68,7 @@ negocio, y cada app lo define en su propio SQL y su propio código.
 | Negocio | App | ¿Usa el núcleo? |
 |---|---|---|
 | Barbería (Flow Barber) | `~/Projects/barberia-app` — en producción | **Todavía no.** Tiene su propia copia de `dinero.js`/`fechas.js`, idéntica salvo por la configuración. Es una duplicación consciente y temporal: no se toca el build de una app en producción hasta que el núcleo esté validado por un segundo consumidor. |
-| Carwash | sin empezar | Será el primero en consumirlo. |
+| Carwash (La Mojadita) | `~/Projects/carwash-la-mojadita` — en construcción, sin producción | **Sí** — primer consumidor, hoy vía `file:../nucleo-negocios`. |
 | Lavandería | sin empezar | El examen: si cuesta menos de la mitad que el carwash, el corte está bien. |
 
 **Deuda conocida:** mientras la barbería tenga su copia, un arreglo en el
@@ -66,10 +76,16 @@ cálculo de dinero hay que aplicarlo en los dos sitios. Es exactamente el
 problema que este repo existe para eliminar, y se cierra cuando la barbería
 migre.
 
-## Pendiente de decidir
+## Cómo consumen las apps este paquete (DECIDIDO 2-sep-2026)
 
-**Cómo consumen las apps este paquete.** No está resuelto y hay que resolverlo
-antes de que el carwash tenga su primer deploy:
+**Dependencia por git, repo PÚBLICO** (`github:barberconflow/nucleo-negocios`).
+Se decidió con el primer deploy del carwash delante: el núcleo no tiene ningún
+secreto (código genérico + SQL), y público significa que Vercel instala sin
+tokens ni configuración. El costo asumido: un cambio del núcleo son commit +
+push aquí y `npm update nucleo-negocios` en cada app. Para trabajar el núcleo
+y una app a la vez en local: `npm link` temporal.
+
+Las opciones que se habían planteado:
 
 - **Monorepo con workspaces** (`~/Projects/negocios/` con `packages/nucleo` y
   `apps/*`): un `npm install`, los cambios del núcleo se ven al instante en
@@ -79,4 +95,7 @@ antes de que el carwash tenga su primer deploy:
   hay que mover nada, pero cada cambio del núcleo son commit + push + bump en
   tres apps, y siendo repo privado hay que darle un token a Vercel.
 
-Decidirlo con el carwash delante, no antes.
+**Avance (1-sep):** el carwash
+ya consume en local con `file:../nucleo-negocios` (npm lo enlaza; su
+vite.config lleva `resolve.dedupe` y `server.fs.allow`). La decisión de
+producción sigue abierta y hay que tomarla antes de su primer deploy.

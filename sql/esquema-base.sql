@@ -190,19 +190,37 @@ drop policy if exists "usuarios_lectura" on usuarios;
 create policy "usuarios_lectura" on usuarios
   for select to authenticated using (true);
 
+-- ¿La sesión actual es de un admin activo? `security definer`: lee
+-- `usuarios` SIN pasar por RLS. Si la política preguntara leyendo la tabla
+-- directamente, evaluaría su propia política otra vez: recursión infinita
+-- (42P17 — lo encontró el carwash al encender, 2-sep-2026).
+create or replace function soy_admin()
+returns boolean
+language sql
+stable
+security definer
+set search_path = public
+as $$
+  select exists (
+    select 1 from usuarios u
+    where lower(u.email) = lower(auth.jwt() ->> 'email')
+      and u.rol = 'admin' and u.activo
+  );
+$$;
+
+revoke all on function soy_admin() from public;
+grant execute on function soy_admin() to authenticated;
+
 drop policy if exists "usuarios_escritura_admin" on usuarios;
-create policy "usuarios_escritura_admin" on usuarios
-  for all to authenticated
-  using (exists (
-    select 1 from usuarios u
-    where lower(u.email) = lower(auth.jwt() ->> 'email')
-      and u.rol = 'admin' and u.activo
-  ))
-  with check (exists (
-    select 1 from usuarios u
-    where lower(u.email) = lower(auth.jwt() ->> 'email')
-      and u.rol = 'admin' and u.activo
-  ));
+drop policy if exists "usuarios_insert_admin" on usuarios;
+create policy "usuarios_insert_admin" on usuarios
+  for insert to authenticated with check (soy_admin());
+drop policy if exists "usuarios_update_admin" on usuarios;
+create policy "usuarios_update_admin" on usuarios
+  for update to authenticated using (soy_admin()) with check (soy_admin());
+drop policy if exists "usuarios_delete_admin" on usuarios;
+create policy "usuarios_delete_admin" on usuarios
+  for delete to authenticated using (soy_admin());
 
 -- ---------- Tiempo real ----------
 -- Los cambios se transmiten a todos los dispositivos conectados.

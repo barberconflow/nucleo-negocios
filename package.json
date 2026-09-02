@@ -9,14 +9,32 @@
     ".": "./src/index.js",
     "./dinero": "./src/dinero.js",
     "./fechas": "./src/fechas.js",
-    "./sql/esquema-base.sql": "./sql/esquema-base.sql"
+    "./sql/esquema-base.sql": "./sql/esquema-base.sql",
+    "./estilos": "./src/estilos.js",
+    "./supabase": "./src/supabase.js",
+    "./auth": "./src/auth.js"
   },
-  "files": ["src", "sql"],
+  "files": [
+    "src",
+    "sql"
+  ],
   "scripts": {
     "test": "vitest run",
     "test:watch": "vitest"
   },
   "devDependencies": {
     "vitest": "^4.1.11"
+  },
+  "peerDependencies": {
+    "react": ">=18",
+    "@supabase/supabase-js": ">=2"
+  },
+  "peerDependenciesMeta": {
+    "react": {
+      "optional": true
+    },
+    "@supabase/supabase-js": {
+      "optional": true
+    }
   }
 }
