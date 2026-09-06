@@ -34,12 +34,20 @@ create table if not exists usuarios (
   id uuid primary key default gen_random_uuid(),
   email text not null unique,
   nombre text not null,
+  apellido text,
+  telefono text,                 -- el celular de contacto
   rol text not null default 'empleado'
     check (rol in ('admin','socio','encargado','empleado')),
   empleado_nombre text,          -- a qué empleado corresponde, si es uno
   activo boolean not null default true,
+  -- Solicitud que llegó por el QR de alta: existe pero no puede entrar
+  -- hasta que el admin le asigne rol y la active.
+  pendiente boolean not null default false,
   creado timestamptz default now()
 );
+alter table usuarios add column if not exists apellido text;
+alter table usuarios add column if not exists telefono text;
+alter table usuarios add column if not exists pendiente boolean not null default false;
 
 -- ---------- Lo que se cobra ----------
 
