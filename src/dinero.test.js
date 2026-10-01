@@ -304,6 +304,32 @@ describe("caja chica y cuenta bancaria", () => {
       gastos: [{ fuente: "caja", monto: null }],
     }).cajaChica).toBe(100);
   });
+
+  it("un cobro mixto reparte: la parte en efectivo a caja y el resto a la cuenta", () => {
+    const { cajaChica, enCuenta } = saldos({ ventas: [{ metodo: "mixto", precio: 300, parte_efectivo: 100 }] });
+    expect(cajaChica).toBe(100);
+    expect(enCuenta).toBe(200);
+  });
+
+  it("un cobro mixto nunca mete a caja más que el precio ni menos de cero", () => {
+    expect(saldos({ ventas: [{ metodo: "mixto", precio: 300, parte_efectivo: 999 }] }))
+      .toMatchObject({ cajaChica: 300, enCuenta: 0 });
+    expect(saldos({ ventas: [{ metodo: "mixto", precio: 300, parte_efectivo: -50 }] }))
+      .toMatchObject({ cajaChica: 0, enCuenta: 300 });
+  });
+
+  it("una transferencia a un empleado que sigue PENDIENTE todavía no salió de la cuenta", () => {
+    const { enCuenta, pagadoEmpleadosCuenta } = saldos({
+      ventas: [{ metodo: "tarjeta", precio: 1000 }],
+      pagos: [
+        { fuente: "cuenta", monto: 300, estado: "pendiente" },
+        { fuente: "cuenta", monto: 200, estado: "rechazado" },
+        { fuente: "cuenta", monto: 100, estado: "aprobado" },
+      ],
+    });
+    expect(pagadoEmpleadosCuenta).toBe(100);
+    expect(enCuenta).toBe(900);
+  });
 });
 
 describe("sumas del resumen", () => {

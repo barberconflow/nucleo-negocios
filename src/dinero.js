@@ -40,20 +40,47 @@ export const desde = (lista, fecha) => lista.filter(x => new Date(x.fecha) >= fe
 // Los dos números que el dueño cuadra a mano al cerrar el día. Iguales en los
 // tres negocios: entra plata por servicios, sale por gastos, retiros y pagos
 // a empleados; cada movimiento sale de la caja o de la cuenta.
+//
+// Pago mixto (nació en la barbería, v44): UNA venta con `metodo = 'mixto'`,
+// `parte_efectivo` a caja y el resto (precio − parte_efectivo) a la cuenta.
+// El resto no se guarda, así nunca puede dejar de cuadrar.
+export const esMixto = (v) => v.metodo === "mixto";
+
+// Cuánto de una venta entró a caja chica y cuánto a la cuenta bancaria.
+export const entroACaja = (v) => {
+  const precio = Number(v.precio || 0);
+  if (v.metodo === "efectivo") return precio;
+  if (esMixto(v)) return Math.min(precio, Math.max(0, Number(v.parte_efectivo || 0)));
+  return 0;
+};
+export const entroACuenta = (v) => {
+  const precio = Number(v.precio || 0);
+  if (v.metodo === "tarjeta" || v.metodo === "transferencia") return precio;
+  if (esMixto(v)) return precio - entroACaja(v);
+  return 0;
+};
+
+// Un pago a empleado cuenta como dinero que salió solo si está HECHO. Donde
+// la transferencia la hace únicamente el dueño, el encargado la deja
+// `pendiente` hasta que él la marca hecha. Sin `estado` = hecho (los negocios
+// que no usan aprobación, y los pagos de antes de que existiera).
+export const pagoHecho = (p) => (p.estado || "aprobado") === "aprobado";
+
 export function saldos(datos) {
   // Solo los retiros APROBADOS salen de la caja chica.
   const retirado = suma((datos.retiros || []).filter(r => r.estado === "aprobado"), "monto");
   // Un pago sin `fuente` se considera hecho en efectivo: así se descontaban
   // todos antes de que existiera la opción de pagar desde la cuenta.
-  const pagadoEmpleadosCaja = suma((datos.pagos || []).filter(p => (p.fuente || "caja") === "caja"), "monto");
-  const pagadoEmpleadosCuenta = suma((datos.pagos || []).filter(p => p.fuente === "cuenta"), "monto");
+  const hechos = (datos.pagos || []).filter(pagoHecho);
+  const pagadoEmpleadosCaja = suma(hechos.filter(p => (p.fuente || "caja") === "caja"), "monto");
+  const pagadoEmpleadosCuenta = suma(hechos.filter(p => p.fuente === "cuenta"), "monto");
 
   const ventas = datos.ventas || [];
   const gastos = datos.gastos || [];
 
-  const cajaChica = suma(ventas.filter(v => v.metodo === "efectivo"))
+  const cajaChica = ventas.reduce((a, v) => a + entroACaja(v), 0)
     - suma(gastos.filter(g => g.fuente === "caja"), "monto") - retirado - pagadoEmpleadosCaja;
-  const enCuenta = suma(ventas.filter(v => v.metodo === "transferencia" || v.metodo === "tarjeta"))
+  const enCuenta = ventas.reduce((a, v) => a + entroACuenta(v), 0)
     - suma(gastos.filter(g => g.fuente === "cuenta"), "monto") - pagadoEmpleadosCuenta;
 
   return { cajaChica, enCuenta, retirado, pagadoEmpleadosCaja, pagadoEmpleadosCuenta };
