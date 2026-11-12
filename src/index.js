@@ -2,3 +2,4 @@
 // compartir sale de aquí.
 export * from "./dinero.js";
 export * from "./fechas.js";
+export * from "./whatsapp.js";
