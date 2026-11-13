@@ -354,7 +354,7 @@ describe("sumas del resumen", () => {
 
 describe("repartirDescuento: el descuento se reparte por precio, con centavos exactos", () => {
   it("dos servicios de 200 y 100 con $50: 33.33 y 16.67", () => {
-    expect(repartirDescuento([200, 100], 50)).toEqual([33.34, 16.66]);
+    expect(repartirDescuento([200, 100], 50)).toEqual([33.33, 16.67]);
   });
   it("la suma siempre es exactamente el descuento", () => {
     for (const [precios, d] of [[[89, 150, 60], 100], [[33, 33, 33], 10], [[0.01, 0.02], 0.02], [[120], 50]]) {
