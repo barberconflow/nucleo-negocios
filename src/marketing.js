@@ -104,3 +104,16 @@ export function textoLoopy(plantilla, { nombre, estampas, meta = 10, pendientes 
     .trim();
   return t.charAt(0).toUpperCase() + t.slice(1);
 }
+
+// ---------- ¿Sale ya el reporte automático de la noche? ----------
+// pg_cron lo pide cada 15 min dentro de una ventana (en la barbería 21:00 a
+// 23:45; en el carwash 20:00 a 22:45). Espera mientras haya servicios de hoy
+// abiertos, para no mandar números que todavía van a cambiar; el último
+// intento de la ventana sale igual, con un aviso de cuántos quedaron.
+export function decidirReporte({ abiertos = 0, yaSalio = false, hora = 21, minuto = 0, ultimoIntento = { hora: 23, minuto: 45 } } = {}) {
+  if (yaSalio) return { mandar: false, motivo: "ya salió hoy" };
+  const ultimo = hora > ultimoIntento.hora
+    || (hora === ultimoIntento.hora && minuto >= ultimoIntento.minuto);
+  if (abiertos > 0 && !ultimo) return { mandar: false, motivo: `${abiertos} servicio(s) abierto(s)` };
+  return { mandar: true, conAviso: abiertos > 0 };
+}

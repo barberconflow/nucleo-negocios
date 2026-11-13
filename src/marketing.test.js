@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
 import {
-  ahoraEn, tocaHoy, describirCalendario, motivoTope, venceBeneficio, fechaParaCliente, textoLoopy,
+  ahoraEn, tocaHoy, describirCalendario, motivoTope, venceBeneficio, fechaParaCliente, textoLoopy, decidirReporte,
 } from "./marketing.js";
 
 // Zona de prueba sin horario de verano (UTC-5 todo el año).
@@ -86,5 +86,23 @@ describe("textoLoopy: el texto de la tarjeta", () => {
   });
   it("{vence} y {faltan} nunca bajan de cero", () => {
     expect(textoLoopy("vale hasta el {vence}, faltan {faltan}", { estampas: 12, meta: 10, vence: "hoy" })).toBe("Vale hasta el hoy, faltan 0");
+  });
+});
+
+describe("decidirReporte: cuándo sale el reporte de la noche", () => {
+  it("si ya salió hoy, no vuelve a salir", () => {
+    expect(decidirReporte({ yaSalio: true, hora: 22 })).toEqual({ mandar: false, motivo: "ya salió hoy" });
+  });
+  it("con servicios abiertos espera", () => {
+    expect(decidirReporte({ abiertos: 2, hora: 21, minuto: 0 }).mandar).toBe(false);
+    expect(decidirReporte({ abiertos: 2, hora: 21, minuto: 0 }).motivo).toBe("2 servicio(s) abierto(s)");
+  });
+  it("sin nada abierto sale sin aviso", () => {
+    expect(decidirReporte({ abiertos: 0, hora: 21 })).toEqual({ mandar: true, conAviso: false });
+  });
+  it("en el último intento sale aunque queden abiertos, con aviso", () => {
+    expect(decidirReporte({ abiertos: 1, hora: 23, minuto: 45 })).toEqual({ mandar: true, conAviso: true });
+    expect(decidirReporte({ abiertos: 1, hora: 22, minuto: 45, ultimoIntento: { hora: 22, minuto: 45 } })).toEqual({ mandar: true, conAviso: true });
+    expect(decidirReporte({ abiertos: 1, hora: 22, minuto: 30, ultimoIntento: { hora: 22, minuto: 45 } }).mandar).toBe(false);
   });
 });
