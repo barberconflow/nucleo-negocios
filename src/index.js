@@ -3,3 +3,4 @@
 export * from "./dinero.js";
 export * from "./fechas.js";
 export * from "./whatsapp.js";
+export * from "./marketing.js";
