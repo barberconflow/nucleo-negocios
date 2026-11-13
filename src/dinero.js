@@ -207,3 +207,37 @@ export function crearComisiones(config = {}) {
     comisionesDelDia,
   };
 }
+
+// ---------- Cupones (CRM, fase 3 del carwash) ----------
+// Un cupón se aplica a un servicio (lavado o corte) y el descuento se reparte
+// entre las filas de la venta en proporción a su precio, con centavos exactos:
+// la suma de los repartos es exactamente el descuento. Los centavos que no
+// dividen se van a las filas con mayor residuo (y, a empate, a las primeras).
+export function repartirDescuento(precios, descuento) {
+  const lista = (precios || []).map(p => Math.max(0, Math.round((Number(p) || 0) * 100)));
+  const total = lista.reduce((a, b) => a + b, 0);
+  const objetivo = Math.min(total, Math.max(0, Math.round((Number(descuento) || 0) * 100)));
+  if (!lista.length || objetivo === 0) return lista.map(() => 0);
+  const exacto = lista.map(p => (p * objetivo) / total);
+  const base = exacto.map(x => Math.floor(x));
+  let faltan = objetivo - base.reduce((a, b) => a + b, 0);
+  const orden = exacto.map((x, i) => [x - base[i], i]).sort((a, b) => b[0] - a[0] || a[1] - b[1]);
+  for (const [, i] of orden) {
+    if (faltan <= 0) break;
+    if (base[i] < lista[i]) { base[i] += 1; faltan -= 1; }
+  }
+  return base.map(c => c / 100);
+}
+
+// Regla del dueño del carwash (13-nov-2026): el cupón solo se aplica si el
+// total es de al menos el monto del cupón (mínimo de compra = el cupón). No
+// se descuenta "hasta $0" ni se guarda remanente. Devuelve el descuento o el
+// motivo por el que no aplica.
+export function aplicarCupon({ total, monto, minimoCompra = true }) {
+  const t = Math.round((Number(total) || 0) * 100) / 100;
+  const m = Math.round((Number(monto) || 0) * 100) / 100;
+  if (m <= 0) return { descuento: 0, motivo: "sin_monto" };
+  if (t <= 0) return { descuento: 0, motivo: "sin_total" };
+  if (minimoCompra && t < m) return { descuento: 0, motivo: "cupon_minimo", faltan: Math.round((m - t) * 100) / 100 };
+  return { descuento: Math.min(m, t) };
+}

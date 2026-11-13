@@ -1,7 +1,7 @@
 import { describe, it, expect } from "vitest";
 import {
   ingresoReal, esCortesia, saldos, suma, sumaIngreso, totales,
-  crearComisiones,
+  crearComisiones, repartirDescuento, aplicarCupon,
 } from "./dinero.js";
 
 const HOY = new Date("2026-08-30T14:00:00");
@@ -349,5 +349,36 @@ describe("sumas del resumen", () => {
     }, HOY);
     expect(t.ventasHoy).toHaveLength(1);
     expect(t.ventasSem).toHaveLength(2);  // 29 y 30 de agosto caen en la misma semana
+  });
+});
+
+describe("repartirDescuento: el descuento se reparte por precio, con centavos exactos", () => {
+  it("dos servicios de 200 y 100 con $50: 33.33 y 16.67", () => {
+    expect(repartirDescuento([200, 100], 50)).toEqual([33.34, 16.66]);
+  });
+  it("la suma siempre es exactamente el descuento", () => {
+    for (const [precios, d] of [[[89, 150, 60], 100], [[33, 33, 33], 10], [[0.01, 0.02], 0.02], [[120], 50]]) {
+      const r = repartirDescuento(precios, d);
+      expect(Math.round(r.reduce((a, b) => a + b, 0) * 100) / 100).toBe(Math.min(d, precios.reduce((a, b) => a + b, 0)));
+      r.forEach((x, i) => expect(x).toBeLessThanOrEqual(precios[i]));
+    }
+  });
+  it("un descuento mayor al total se queda en el total; sin filas o sin descuento, ceros", () => {
+    expect(repartirDescuento([60, 29], 100)).toEqual([60, 29]);
+    expect(repartirDescuento([], 50)).toEqual([]);
+    expect(repartirDescuento([100, 50], 0)).toEqual([0, 0]);
+  });
+});
+
+describe("aplicarCupon: mínimo de compra igual al cupón", () => {
+  it("un lavado de $89 no alcanza para un cupón de $100", () => {
+    expect(aplicarCupon({ total: 89, monto: 100 })).toEqual({ descuento: 0, motivo: "cupon_minimo", faltan: 11 });
+  });
+  it("de $100 para arriba se descuenta el cupón completo", () => {
+    expect(aplicarCupon({ total: 100, monto: 100 })).toEqual({ descuento: 100 });
+    expect(aplicarCupon({ total: 250, monto: 50 })).toEqual({ descuento: 50 });
+  });
+  it("sin la regla del mínimo se descuenta hasta el total", () => {
+    expect(aplicarCupon({ total: 89, monto: 100, minimoCompra: false })).toEqual({ descuento: 89 });
   });
 });
